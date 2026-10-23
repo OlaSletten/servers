@@ -959,27 +959,49 @@ describe("Lib Functions", () => {
       });
 
       it("handles files with content and returns last lines", async () => {
-        mockFs.stat.mockResolvedValue({ size: 50 } as Stats);
+        const content = Buffer.from("line1\nline2\nline3\nline4\nline5\n");
+        const mockFileHandle = createMockFileHandle(content);
 
-        const mockFileHandle = {
-          read: vi.fn(),
-          close: vi.fn(),
-        };
-
-        // Simulate reading file content in chunks
-        mockFileHandle.read
-          .mockResolvedValueOnce({
-            bytesRead: 20,
-            buffer: Buffer.from("line3\nline4\nline5\n"),
-          })
-          .mockResolvedValueOnce({ bytesRead: 0 });
-        mockFileHandle.close.mockResolvedValue(undefined);
-
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
         mockFs.open.mockResolvedValue(asFileHandle(mockFileHandle));
 
-        await tailFile("/test/file.txt", 2);
+        const result = await tailFile("/test/file.txt", 2);
 
-        expect(mockFileHandle.close).toHaveBeenCalled();
+        expect(result).toBe("line4\nline5");
+      });
+
+      it("correctly handles files with trailing newlines without treating empty line as content", async () => {
+        const content = Buffer.from("alpha\nbeta\ngamma\n");
+        const mockFileHandle1 = createMockFileHandle(content);
+
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
+        mockFs.open.mockResolvedValueOnce(asFileHandle(mockFileHandle1));
+
+        const tail1 = await tailFile("/test/repro.txt", 1);
+        expect(tail1).toBe("gamma");
+
+        const mockFileHandle2 = createMockFileHandle(content);
+        mockFs.open.mockResolvedValueOnce(asFileHandle(mockFileHandle2));
+
+        const tail2 = await tailFile("/test/repro.txt", 2);
+        expect(tail2).toBe("beta\ngamma");
+
+        const mockFileHandle3 = createMockFileHandle(content);
+        mockFs.open.mockResolvedValueOnce(asFileHandle(mockFileHandle3));
+
+        const tail3 = await tailFile("/test/repro.txt", 3);
+        expect(tail3).toBe("alpha\nbeta\ngamma");
+      });
+
+      it("handles files without trailing newline correctly", async () => {
+        const content = Buffer.from("alpha\nbeta\ngamma");
+        const mockFileHandle = createMockFileHandle(content);
+
+        mockFs.stat.mockResolvedValue({ size: content.length } as Stats);
+        mockFs.open.mockResolvedValue(asFileHandle(mockFileHandle));
+
+        const result = await tailFile("/test/no-trailing.txt", 2);
+        expect(result).toBe("beta\ngamma");
       });
 
       it("preserves UTF-8 characters split across chunk boundaries", async () => {

@@ -577,8 +577,10 @@ export async function tailFile(
     const chunk = Buffer.alloc(CHUNK_SIZE);
     let newlinesFound = 0;
 
-    // Read chunks from the end of the file until we have enough lines
-    while (position > 0 && newlinesFound < numLines) {
+    // Read chunks from the end of the file until we have enough lines.
+    // Reading until newlinesFound <= numLines ensures the earliest line is
+    // fully read even when the file ends with a trailing newline.
+    while (position > 0 && newlinesFound <= numLines) {
       const size = Math.min(CHUNK_SIZE, position);
       position -= size;
 
@@ -592,7 +594,11 @@ export async function tailFile(
       }
     }
 
-    const text = normalizeLineEndings(Buffer.concat(chunks).toString("utf-8"));
+    let text = normalizeLineEndings(Buffer.concat(chunks).toString("utf-8"));
+    // A trailing newline terminates the final line; it does not start a new empty line.
+    if (text.endsWith("\n")) {
+      text = text.slice(0, -1);
+    }
     return text.split("\n").slice(-numLines).join("\n");
   } finally {
     await fileHandle.close();
