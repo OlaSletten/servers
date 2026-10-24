@@ -1,3 +1,15 @@
 {
-  "integrations": []
+  "integrations": [
+    "gemini",
+    "vercel-ai",
+    "anthropic",
+    "huggingface",
+    "tensorflow",
+    "sklearn",
+    "pytorch",
+    "mcp",
+    "slack",
+    "notion",
+    "supabase"
+  ]
 }
