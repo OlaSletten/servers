@@ -10,6 +10,9 @@
     "mcp",
     "slack",
     "notion",
-    "supabase"
+    "supabase",
+    "ollama",
+    "transformersjs",
+    "onnx"
   ]
 }
